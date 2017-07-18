@@ -22,6 +22,10 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Array;
+import java.lang.reflect.Executable;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 
 /**
  * @author tangjie<https://github.com/tang-jie>
@@ -32,6 +36,15 @@ import java.lang.reflect.Array;
  */
 public class ReflectionUtils {
     private static ImmutableMap.Builder<Class, Object> builder = ImmutableMap.builder();
+    private StringBuilder provider = new StringBuilder();
+
+    public StringBuilder getProvider() {
+        return provider;
+    }
+
+    public void clearProvider() {
+        provider.delete(0, provider.length());
+    }
 
     static {
         builder.put(Boolean.class, Boolean.FALSE);
@@ -104,6 +117,76 @@ public class ReflectionUtils {
             return (Class<?>) ((ParameterizedType) genericClass).getRawType();
         } else {
             return (Class<?>) genericClass;
+        }
+    }
+
+    private String modifiers(int m) {
+        return m != 0 ? Modifier.toString(m) + " " : "";
+    }
+
+    private String getType(Class<?> t) {
+        String brackets = "";
+        while (t.isArray()) {
+            brackets += "[]";
+            t = t.getComponentType();
+        }
+        return t.getName() + brackets;
+    }
+
+    private void listTypes(Class<?>[] types) {
+        for (int i = 0; i < types.length; i++) {
+            if (i > 0) {
+                provider.append(", ");
+            }
+            provider.append(getType(types[i]));
+        }
+    }
+
+    private void listField(Field f, boolean html) {
+        provider.append((html ? "&nbsp&nbsp" : "  ") + modifiers(f.getModifiers()) +
+                getType(f.getType()) + " " +
+                f.getName() + (html ? ";<br>" : ";\n"));
+    }
+
+    private void listMethod(Executable member, boolean html) {
+        provider.append(html ? "<br>&nbsp&nbsp" : "\n  " + modifiers(member.getModifiers()));
+        if (member instanceof Method) {
+            provider.append(getType(((Method) member).getReturnType()) + " ");
+        }
+        provider.append(member.getName() + "(");
+        listTypes(member.getParameterTypes());
+        provider.append(")");
+        Class<?>[] exceptions = member.getExceptionTypes();
+        if (exceptions.length > 0) {
+            provider.append(" throws ");
+        }
+        listTypes(exceptions);
+        provider.append(";");
+    }
+
+    public void listRpcProviderDetail(Class<?> c, boolean html) {
+        if (!c.isInterface()) {
+            return;
+        } else {
+            provider.append(Modifier.toString(c.getModifiers()) + " " + c.getName());
+            provider.append(html ? " {<br>" : " {\n");
+
+            boolean hasFields = false;
+            Field[] fields = c.getDeclaredFields();
+            if (fields.length != 0) {
+                provider.append(html ? "&nbsp&nbsp//&nbspFields<br>" : "  // Fields\n");
+                hasFields = true;
+                for (Field field : fields) {
+                    listField(field, html);
+                }
+            }
+
+            provider.append(hasFields ? (html ? "<br>&nbsp&nbsp//&nbspMethods" : "\n  // Methods") : (html ? "&nbsp&nbsp//&nbspMethods" : "  // Methods"));
+            Method[] methods = c.getDeclaredMethods();
+            for (Method method : methods) {
+                listMethod(method, html);
+            }
+            provider.append(html ? "<br>}<p>" : "\n}\n\n");
         }
     }
 }
