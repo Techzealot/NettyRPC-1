@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2016 Newland Group Holding Limited
+ * Copyright (C) 2017 Newland Group Holding Limited
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.newlandframework.rpc.services;
+package com.newlandframework.rpc.compiler.weaver;
 
-import com.newlandframework.rpc.services.pojo.Person;
+import com.newlandframework.rpc.compiler.intercept.Interceptor;
 
 /**
  * @author tangjie<https://github.com/tang-jie>
- * @filename:PersonManage.java
- * @description:PersonManage功能模块
+ * @filename:AbstractProxyProvider.java
+ * @description:AbstractProxyProvider功能模块
  * @blogs http://www.cnblogs.com/jietang/
- * @since 2016/11/7
+ * @since 2017/8/30
  */
-public interface PersonManage {
-    int save(Person p);
+public abstract class AbstractProxyProvider implements ClassProxy {
 
-    void query(Person p);
+    @Override
+    public <T> T createProxy(Object target, Interceptor interceptor, Class<?>... proxyClasses) {
+        return createProxy(Thread.currentThread().getContextClassLoader(), target, interceptor, proxyClasses);
+    }
 }
+
